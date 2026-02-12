@@ -1,49 +1,7 @@
-# Cloudflare Pages / Workers 配置文件
-# 用於部署圖片生成 API 輸出站
-# 支援 ZImage Turbo 和 Flux2Klein 模型
-# 支援 API Key 和 Cookie 認證
+name = "nsfwlover-complete-api"
+main = "src/index.js"
+compatibility_date = "2026-02-13"
 
-name = "image-api-dashboard"
-compatibility_date = "2024-01-01"
-
-# Pages 配置
-[pages]
-project_name = "image-api-dashboard"
-production_branch = "main"
-
-# 資源目錄配置（靜態網站）
-[assets]
-directory = "./"
-# 靜態網站無需構建命令
-
-# 環境變量 - API 端點配置
-[vars]
-# ZImage Turbo 模型端點（快速生成）
-ZIMAGE_TURBO_ENDPOINT = "https://www.nsfwlover.com/api/image/generation/zimage-turbo"
-# Flux2Klein 模型端點（高品質生成）
-FLUX2KLEIN_ENDPOINT = "https://www.nsfwlover.com/api/image/generation/flux2klein"
-# 預設模型
-DEFAULT_MODEL = "zimage-turbo"
-# API Key（可選，用於認證）
-# API_KEY = "your-api-key-here"
-# Cookie（可選，用於認證）
-# COOKIE = "your-cookie-here"
-
-# 預覽環境配置
-[env.preview]
-name = "image-api-dashboard-preview"
-
-# 生產環境配置
 [env.production]
-name = "image-api-dashboard-prod"
-
-# 頭部配置 - 允許跨域請求
-[[headers]]
-for = "/*"
-[headers.values]
-Access-Control-Allow-Origin = "*"
-Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-Access-Control-Allow-Headers = "Content-Type, Authorization, Cookie"
-X-Content-Type-Options = "nosniff"
-X-Frame-Options = "DENY"
-X-XSS-Protection = "1; mode=block"
+# 若需變數，如 COOKIE，添加
+# cookie = "您的 cookie 值"
