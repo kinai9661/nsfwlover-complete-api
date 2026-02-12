@@ -1,6 +1,11 @@
 name = "nsfwlover-complete-api"
 main = "src/index.js"
-compatibility_date = "2026-02-13"
+compatibility_date = "2025-12-31"
+
+# 若需環境變數
+# [vars]
+# CUSTOM_COOKIE = "你的cookie值"
+
 
 [env.production]
 # 若需變數，如 COOKIE，添加
