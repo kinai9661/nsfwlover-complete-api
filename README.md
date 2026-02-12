@@ -8,6 +8,7 @@ OpenAI 相容的圖片生成 API 逆向工程輸出站，支援 ZImage Turbo 和
 - 🤖 **多模型支援** - ZImage Turbo (快速) / Flux2Klein (高品質)
 - 🔞 **成人模式** - 支援成人圖片生成（需手動啟用）
 - 🔑 **API Key 支援** - 支援 Bearer Token 認證
+- 🍪 **Cookie 支援** - 支援 Cookie 認證
 - 🌐 **多語言介面** - 支援中文和英文切換
 - 📊 **API 資訊** - 顯示完整的 API 端點資訊和參數說明
 - 📝 **請求/響應** - 即時顯示請求內容和響應結果
@@ -27,6 +28,30 @@ OpenAI 相容的圖片生成 API 逆向工程輸出站，支援 ZImage Turbo 和
 ```
 https://www.nsfwlover.com/api/image/generation/zimage-turbo
 https://www.nsfwlover.com/api/image/generation/flux2klein
+```
+
+## 認證設置
+
+### 方法一：透過 URL 參數
+
+在網址後添加參數：
+
+```
+https://your-site.com/?api_key=YOUR_API_KEY&cookie=YOUR_COOKIE
+```
+
+### 方法二：透過介面輸入
+
+在「API 設置」區域輸入您的 API Key 或 Cookie，系統會自動保存到 localStorage。
+
+### 方法三：透過環境變量（部署時）
+
+在 `wrangler.toml` 中設置：
+
+```toml
+[vars]
+API_KEY = "your-api-key-here"
+COOKIE = "your-cookie-here"
 ```
 
 ## 部署到 Cloudflare Pages
@@ -70,10 +95,10 @@ wrangler pages deploy . --project-name=image-api-dashboard
 
 1. 選擇模型（ZImage Turbo 或 Flux2Klein）
 2. 選擇語言（中文或英文）
-3. （可選）輸入 API Key 進行認證
+3. （可選）輸入 API Key 或 Cookie 進行認證
 4. （可選）啟用成人模式以生成成人內容
 5. 輸入提示詞描述您想要的圖片
-6. 設定圖片片參數（寬度、高度、步數等）
+6. 設定圖片圖片參數（寬度、高度、步數等）
 7. 點擊「生成圖片」按鈕
 8. 查看生成結果和 API 響應
 
@@ -88,33 +113,14 @@ wrangler pages deploy . --project-name=image-api-dashboard
 | seed | number | 否 | 隨機種子，用於重複生成 |
 | negative_prompt | string | 否 | 負面提示詞 |
 | nsfw | boolean | 否 | 成人模式，啟用後可生成成人內容 (預設: false) |
-| cfg_scale | number | 否 | CFG Scale，控制提示詞影響程度 (預設: 7.5) |
-| num_images | number | 否 | 生成圖片數量 (預設: 1) |
-| sampler_name | string | 否 | 採樣器類型 (預設: dpmpp_2m) |
-| scheduler | string | 否 | 調度器類型 (預設: normal) |
-
-### 採樣器選項
-
-- `euler_a` - Euler Ancestral
-- `euler` - Euler
-- `dpmpp_2m` - DPM++ 2M (預設)
-- `dpmpp_sde` - DPM++ SDE
-- `ddim` - DDIM
-- `uni_pc` - UniPC
-
-### 調度器選項
-
-- `normal` - Normal (預設)
-- `karras` - Karras
-- `exponential` - Exponential
-- `sgm_uniform` - SGM Uniform
 
 ## API 認證
 
-如果 API 需要認證，請在「API 設置」區域輸入您的 API Key。系統會自動將其添加到請求標頭中：
+如果 API 需要認證，請在「API 設置」區域輸入您的 API Key 或 Cookie。系統會自動將其添加到請求標頭中：
 
 ```
 Authorization: Bearer YOUR_API_KEY
+Cookie: YOUR_COOKIE
 ```
 
 ## 快捷鍵
@@ -127,6 +133,7 @@ Authorization: Bearer YOUR_API_KEY
 - 無需框架或建置工具
 - Fetch API 進行 HTTP 請求
 - 多語言支援 (i18n)
+- localStorage 用於 API Key 和 Cookie 持久化
 
 ## 免責聲明
 

@@ -1,9 +1,9 @@
 # Cloudflare Pages / Workers 配置文件
 # 用於部署圖片生成 API 輸出站
 # 支援 ZImage Turbo 和 Flux2Klein 模型
-# 支援 API Key 認證和多種生圖參數
+# 支援 API Key 和 Cookie 認證
 
-name = "nsfwlover-complete-api"
+name = "image-api-dashboard"
 compatibility_date = "2024-01-01"
 
 # Pages 配置
@@ -24,14 +24,10 @@ ZIMAGE_TURBO_ENDPOINT = "https://www.nsfwlover.com/api/image/generation/zimage-t
 FLUX2KLEIN_ENDPOINT = "https://www.nsfwlover.com/api/image/generation/flux2klein"
 # 預設模型
 DEFAULT_MODEL = "zimage-turbo"
-# 預設 CFG Scale
-DEFAULT_CFG_SCALE = "7.5"
-# 預設生成數量
-DEFAULT_NUM_IMAGES = "1"
-# 預設採樣器
-DEFAULT_SAMPLER = "dpmpp_2m"
-# 預設調度器
-DEFAULT_SCHEDULER = "normal"
+# API Key（可選，用於認證）
+# API_KEY = "your-api-key-here"
+# Cookie（可選，用於認證）
+# COOKIE = "your-cookie-here"
 
 # 預覽環境配置
 [env.preview]
@@ -47,7 +43,7 @@ for = "/*"
 [headers.values]
 Access-Control-Allow-Origin = "*"
 Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-Access-Control-Allow-Headers = "Content-Type, Authorization"
+Access-Control-Allow-Headers = "Content-Type, Authorization, Cookie"
 X-Content-Type-Options = "nosniff"
 X-Frame-Options = "DENY"
 X-XSS-Protection = "1; mode=block"

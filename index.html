@@ -699,6 +699,11 @@
                     <label for="apiKey" data-i18n="apiKeyLabel">API Key</label>
                     <input type="password" id="apiKey" data-i18n-placeholder="apiKeyPlaceholder" placeholder="輸入您的 API Key（選填）">
                 </div>
+                
+                <div class="form-group">
+                    <label for="cookie" data-i18n="cookieLabel">Cookie</label>
+                    <textarea id="cookie" data-i18n-placeholder="cookiePlaceholder" placeholder="輸入您的 Cookie（選填，用於認證）" style="min-height: 60px;"></textarea>
+                </div>
             </div>
 
             <!-- 輸入參數區 -->
@@ -731,40 +736,6 @@
                     <div class="form-group">
                         <label for="seed" data-i18n="seedLabel">隨機種子 (Seed)</label>
                         <input type="number" id="seed" data-i18n-placeholder="seedPlaceholder" placeholder="留空為隨機">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="cfgScale" data-i18n="cfgScaleLabel">CFG Scale</label>
-                        <input type="number" id="cfgScale" value="7.5" min="1" max="30" step="0.5">
-                    </div>
-                    <div class="form-group">
-                        <label for="numImages" data-i18n="numImagesLabel">生成數量</label>
-                        <input type="number" id="numImages" value="1" min="1" max="10">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="samplerName" data-i18n="samplerNameLabel">採樣器</label>
-                        <select id="samplerName">
-                            <option value="euler_a">Euler Ancestral</option>
-                            <option value="euler">Euler</option>
-                            <option value="dpmpp_2m" selected>DPM++ 2M</option>
-                            <option value="dpmpp_sde">DPM++ SDE</option>
-                            <option value="ddim">DDIM</option>
-                            <option value="uni_pc">UniPC</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="scheduler" data-i18n="schedulerLabel">調度器</label>
-                        <select id="scheduler">
-                            <option value="normal" selected>Normal</option>
-                            <option value="karras">Karras</option>
-                            <option value="exponential">Exponential</option>
-                            <option value="sgm_uniform">SGM Uniform</option>
-                        </select>
                     </div>
                 </div>
 
@@ -853,22 +824,6 @@
                             <tr>
                                 <th>nsfw</th>
                                 <td data-i18n="nsfwDesc">成人模式，啟用後可生成成人內容 (選填，預設: false)</td>
-                            </tr>
-                            <tr>
-                                <th>cfg_scale</th>
-                                <td data-i18n="cfgScaleDesc">CFG Scale，控制提示詞影響程度 (選填，預設: 7.5)</td>
-                            </tr>
-                            <tr>
-                                <th>num_images</th>
-                                <td data-i18n="numImagesDesc">生成圖片數量 (選填，預設: 1)</td>
-                            </tr>
-                            <tr>
-                                <th>sampler_name</th>
-                                <td data-i18n="samplerNameDesc">採樣器類型 (選填，預設: dpmpp_2m)</td>
-                            </tr>
-                            <tr>
-                                <th>scheduler</th>
-                                <td data-i18n="schedulerDesc">調度器類型 (選填，預設: normal)</td>
                             </tr>
                         </table>
                     </div>
@@ -984,6 +939,8 @@
                 apiSettings: 'API 設置',
                 apiKeyLabel: 'API Key',
                 apiKeyPlaceholder: '輸入您的 API Key（選填）',
+                cookieLabel: 'Cookie',
+                cookiePlaceholder: '輸入您的 Cookie（選填，用於認證）',
                 cfgScaleLabel: 'CFG Scale',
                 cfgScaleDesc: 'CFG Scale，控制提示詞影響程度 (選填，預設: 7.5)',
                 numImagesLabel: '生成數量',
@@ -1055,6 +1012,8 @@
                 apiSettings: 'API Settings',
                 apiKeyLabel: 'API Key',
                 apiKeyPlaceholder: 'Enter your API Key (optional)',
+                cookieLabel: 'Cookie',
+                cookiePlaceholder: 'Enter your Cookie (optional, for authentication)',
                 cfgScaleLabel: 'CFG Scale',
                 cfgScaleDesc: 'CFG Scale, controls prompt influence (optional, default: 7.5)',
                 numImagesLabel: 'Number of Images',
@@ -1067,6 +1026,41 @@
         };
 
         let currentLang = 'zh';
+
+        // 初始化函數 - 從 URL 參數或 localStorage 讀取 API KEY 和 Cookie
+        function initApp() {
+            // 從 URL 參數讀取 API KEY
+            const urlParams = new URLSearchParams(window.location.search);
+            const apiKeyFromUrl = urlParams.get('api_key');
+            const cookieFromUrl = urlParams.get('cookie');
+            
+            // 從 localStorage 讀取 API KEY 和 Cookie
+            const apiKeyFromStorage = localStorage.getItem('api_key');
+            const cookieFromStorage = localStorage.getItem('cookie');
+            
+            // 優先使用 URL 參數，其次使用 localStorage
+            const apiKey = apiKeyFromUrl || apiKeyFromStorage;
+            const cookie = cookieFromUrl || cookieFromStorage;
+            
+            if (apiKey) {
+                document.getElementById('apiKey').value = apiKey;
+                // 如果是從 URL 參數讀取的，保存到 localStorage
+                if (apiKeyFromUrl && !apiKeyFromStorage) {
+                    localStorage.setItem('api_key', apiKey);
+                }
+            }
+            
+            if (cookie) {
+                document.getElementById('cookie').value = cookie;
+                // 如果是從 URL 參數讀取的，保存到 localStorage
+                if (cookieFromUrl && !cookieFromStorage) {
+                    localStorage.setItem('cookie', cookie);
+                }
+            }
+        }
+
+        // 頁面載入時初始化
+        document.addEventListener('DOMContentLoaded', initApp);
 
         function setLanguage(lang) {
             currentLang = lang;
@@ -1272,10 +1266,18 @@
             const seedInput = document.getElementById('seed').value.trim();
             const negativePrompt = document.getElementById('negativePrompt').value.trim();
             const apiKey = document.getElementById('apiKey').value.trim();
-            const cfgScale = parseFloat(document.getElementById('cfgScale').value) || 7.5;
-            const numImages = parseInt(document.getElementById('numImages').value) || 1;
-            const samplerName = document.getElementById('samplerName').value;
-            const scheduler = document.getElementById('scheduler').value;
+            const cookie = document.getElementById('cookie').value.trim();
+            
+            // 保存 API KEY 到 localStorage
+            if (apiKey) {
+                localStorage.setItem('api_key', apiKey);
+            }
+            
+            // 保存 Cookie 到 localStorage
+            if (cookie) {
+                localStorage.setItem('cookie', cookie);
+            }
+            
             const t = translations[currentLang];
 
             if (!prompt) {
@@ -1292,11 +1294,7 @@
                 height: height,
                 steps: steps,
                 negative_prompt: negativePrompt,
-                nsfw: nsfwMode,
-                cfg_scale: cfgScale,
-                num_images: numImages,
-                sampler_name: samplerName,
-                scheduler: scheduler
+                nsfw: nsfwMode
             };
 
             if (seedInput) {
@@ -1311,6 +1309,11 @@
             // 如果有 API Key，添加到標頭
             if (apiKey) {
                 requestHeaders['Authorization'] = `Bearer ${apiKey}`;
+            }
+            
+            // 如果有 Cookie，添加到標頭
+            if (cookie) {
+                requestHeaders['Cookie'] = cookie;
             }
 
             // 更新請求內容顯示
@@ -1330,7 +1333,15 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP 錯誤: ${response.status} ${response.statusText}`);
+                    // 嘗試讀取錯誤響應內容
+                    let errorDetails = '';
+                    try {
+                        const errorText = await response.text();
+                        errorDetails = errorText;
+                    } catch (e) {
+                        errorDetails = '無法讀取錯誤詳情';
+                    }
+                    throw new Error(`HTTP 錯誤: ${response.status} ${response.statusText}\n詳情: ${errorDetails}`);
                 }
 
                 const contentType = response.headers.get('content-type');
