@@ -1,27 +1,30 @@
-# 🎨 NSFWLover AI 图片生成器
+# 🎨 NSFWLover AI 图片生成器 v2.0
 
-## 快速开始
+完整的 AI 图片生成平台，支持文生图、图生图、批量生成。
 
-1. 部署 Worker
+## 🚀 快速开始
+
+### 1. 部署后端
 ```bash
-chmod +x deploy.sh && ./deploy.sh
+npm install
+wrangler kv:namespace create MODELS_CACHE
+# 更新 wrangler.toml 中的 KV ID
+wrangler deploy
 ```
 
-2. 修改 HTML 中的 API_BASE 为你的 Worker URL
+### 2. 运行前端
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-3. 双击 nsfwlover-single-page.html 使用
+访问: http://localhost:3000
 
-## 功能
+## ✨ 功能
+- 文生图/图生图
+- 8种比例，2个模型
+- 历史记录，提示词模板
+- 响应式UI
 
-- ✅ 文生图
-- ✅ 图生图  
-- ✅ 批量生成
-- ✅ 6种比例
-- ✅ 提示词模板
-
-## 文件
-
-- `nsfwlover-single-page.html` - 前端（单页）
-- `src/index.ts` - Worker 后端
-- `deploy.sh` - 部署脚本
-- `test.sh` - 测试脚本
+详细文档请参考完整 README。
