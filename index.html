@@ -608,6 +608,58 @@
             display: none;
         }
 
+        .image-preview {
+            margin-top: 10px;
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .image-preview img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+
+        .image-preview .placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .analysis-result {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            display: none;
+        }
+
+        .analysis-result.show {
+            display: block;
+        }
+
+        .analysis-result h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .analysis-result pre {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
         .nsfw-warning.show {
             display: block;
         }
@@ -669,6 +721,21 @@
                         <div class="model-desc" data-i18n="fluxDesc">高品質生成模型</div>
                     </div>
                 </div>
+            </div>
+
+            <!-- 圖片分析區 -->
+            <div class="card">
+                <h2 class="card-title" data-i18n="imageAnalysis">圖片分析</h2>
+                
+                <div class="form-group">
+                    <label for="imageUpload" data-i18n="uploadImage">上傳圖片</label>
+                    <input type="file" id="imageUpload" accept="image/*" onchange="handleImageUpload(event)">
+                    <div id="imagePreview" class="image-preview"></div>
+                </div>
+                
+                <button id="analyzeBtn" class="btn" onclick="analyzeImage()" data-i18n="analyzeBtn">分析圖片</button>
+                
+                <div id="analysisResult" class="analysis-result"></div>
             </div>
 
             <!-- 成人模式切換 -->
@@ -875,10 +942,14 @@
             'flux2klein': 'https://www.nsfwlover.com/api/image/generation/flux2klein'
         };
 
+        // 圖片分析 API 端點
+        const IMAGE_ANALYSIS_ENDPOINT = 'https://www.nsfwlover.com/api/image/analysis';
+
         // 當前選擇的模型
         let currentModel = 'zimage-turbo';
         let nsfwMode = false;
         let requestHistory = [];
+        let uploadedImage = null;
 
         // 多語言翻譯
         const translations = {
@@ -888,6 +959,13 @@
                 selectModel: '選擇模型',
                 zimageDesc: '快速生成模型',
                 fluxDesc: '高品質生成模型',
+                imageAnalysis: '圖片分析',
+                uploadImage: '上傳圖片',
+                analyzeBtn: '分析圖片',
+                analyzing: '分析中...',
+                analysisSuccess: '圖片分析成功！',
+                analysisFailed: '圖片分析失敗',
+                noImageSelected: '請先選擇圖片',
                 generationParams: '生成參數',
                 promptLabel: '提示詞 (Prompt)',
                 promptPlaceholder: '輸入您想要生成的圖片描述...',
@@ -962,6 +1040,13 @@
                 selectModel: 'Select Model',
                 zimageDesc: 'Fast generation model',
                 fluxDesc: 'High quality generation model',
+                imageAnalysis: 'Image Analysis',
+                uploadImage: 'Upload Image',
+                analyzeBtn: 'Analyze Image',
+                analyzing: 'Analyzing...',
+                analysisSuccess: 'Image analysis successful!',
+                analysisFailed: 'Image analysis failed',
+                noImageSelected: 'Please select an image first',
                 generationParams: 'Generation Parameters',
                 promptLabel: 'Prompt',
                 promptPlaceholder: 'Enter your image description...',
@@ -1263,6 +1348,124 @@
             const toggle = item.querySelector('.history-toggle');
             const t = translations[currentLang];
             toggle.textContent = item.classList.contains('expanded') ? t.hideDetails : t.viewDetails;
+        }
+
+        // 圖片上傳處理
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                uploadedImage = null;
+                document.getElementById('imagePreview').innerHTML = '<div class="placeholder">請選擇圖片</div>';
+                return;
+            }
+
+            // 檢查文件類型
+            if (!file.type.startsWith('image/')) {
+                showStatus('請選擇圖片文件', 'error');
+                return;
+            }
+
+            // 讀取並預覽圖片
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedImage = e.target.result;
+                document.getElementById('imagePreview').innerHTML = `<img src="${uploadedImage}" alt="預覽圖片">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 圖片分析
+        async function analyzeImage() {
+            const t = translations[currentLang];
+            const cookie = document.getElementById('cookie').value.trim();
+
+            if (!uploadedImage) {
+                showStatus(t.noImageSelected, 'error');
+                return;
+            }
+
+            if (!cookie) {
+                showStatus('請先輸入 Cookie 進行認證', 'error');
+                return;
+            }
+
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = t.analyzing;
+            showStatus(t.analyzing, 'info');
+
+            try {
+                // 將 base64 圖片轉換為 Blob
+                const response = await fetch(uploadedImage);
+                const blob = await response.blob();
+
+                // 構建 FormData
+                const formData = new FormData();
+                formData.append('image', blob);
+
+                // 構建請求標頭
+                const requestHeaders = {
+                    'Accept': 'application/json, text/plain, */*',
+                    'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+                    'Cache-Control': 'no-cache',
+                    'Origin': 'https://www.nsfwlover.com',
+                    'Referer': 'https://www.nsfwlover.com/',
+                    'Sec-Fetch-Dest': 'empty',
+                    'Sec-Fetch-Mode': 'cors',
+                    'Sec-Fetch-Site': 'same-origin',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Cookie': cookie
+                };
+
+                const apiResponse = await fetch(IMAGE_ANALYSIS_ENDPOINT, {
+                    method: 'POST',
+                    headers: requestHeaders,
+                    body: formData
+                });
+
+                // 收集響應標頭
+                const responseHeaders = {};
+                apiResponse.headers.forEach((value, key) => {
+                    responseHeaders[key] = value;
+                });
+
+                if (!apiResponse.ok) {
+                    let errorDetails = '';
+                    try {
+                        const errorText = await apiResponse.text();
+                        errorDetails = errorText;
+                    } catch (e) {
+                        errorDetails = '無法讀取錯誤詳情';
+                    }
+                    throw new Error(`HTTP 錯誤: ${apiResponse.status} ${apiResponse.statusText}\n詳情: ${errorDetails}`);
+                }
+
+                const responseData = await apiResponse.json();
+
+                // 顯示分析結果
+                const analysisResult = document.getElementById('analysisResult');
+                analysisResult.innerHTML = `
+                    <h3>${t.analysisSuccess}</h3>
+                    <pre>${JSON.stringify(responseData, null, 2)}</pre>
+                `;
+                analysisResult.classList.add('show');
+
+                showStatus(t.analysisSuccess, 'success');
+
+            } catch (error) {
+                console.error('圖片分析錯誤:', error);
+                showStatus(t.analysisFailed + ': ' + error.message, 'error');
+                
+                const analysisResult = document.getElementById('analysisResult');
+                analysisResult.innerHTML = `
+                    <h3 style="color: #ff4444;">${t.analysisFailed}</h3>
+                    <pre style="color: #ff4444;">${error.message}</pre>
+                `;
+                analysisResult.classList.add('show');
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = t.analyzeBtn;
+            }
         }
 
         async function generateImage() {
