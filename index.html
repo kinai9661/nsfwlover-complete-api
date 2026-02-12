@@ -1304,29 +1304,29 @@
             }
 
             // 構建請求標頭
-            const headers = {
+            const requestHeaders = {
                 'Content-Type': 'application/json'
             };
 
             // 如果有 API Key，添加到標頭
             if (apiKey) {
-                headers['Authorization'] = `Bearer ${apiKey}`;
+                requestHeaders['Authorization'] = `Bearer ${apiKey}`;
             }
 
             // 更新請求內容顯示
-            updateRequestContent(requestBody, headers);
+            updateRequestContent(requestBody, requestHeaders);
 
             try {
                 const response = await fetch(API_ENDPOINTS[currentModel], {
                     method: 'POST',
-                    headers: headers,
+                    headers: requestHeaders,
                     body: JSON.stringify(requestBody)
                 });
 
                 // 收集響應標頭
-                const headers = {};
+                const responseHeaders = {};
                 response.headers.forEach((value, key) => {
-                    headers[key] = value;
+                    responseHeaders[key] = value;
                 });
 
                 if (!response.ok) {
@@ -1362,7 +1362,7 @@
                 }
 
                 // 更新響應內容顯示
-                updateResponseContent(responseData, response.status, headers);
+                updateResponseContent(responseData, response.status, responseHeaders);
                 
                 // 添加到歷史
                 addToHistory(requestBody, responseData, response.status);
@@ -1383,7 +1383,7 @@
                 `;
                 
                 // 更新響應內容顯示
-                updateResponseContent({ error: error.message }, 'Error', {});
+                updateResponseContent({ error: error.message }, 'Error', requestHeaders);
                 
                 // 添加到歷史
                 addToHistory(requestBody, { error: error.message }, 'Error', error.message);
