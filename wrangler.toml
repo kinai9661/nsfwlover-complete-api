@@ -1,9 +1,0 @@
-name = "nsfwlover-proxy"
-main = "src/index.ts"
-compatibility_date = "2024-01-01"
-compatibility_flags = ["nodejs_compat"]
-
-[[kv_namespaces]]
-binding = "MODELS_CACHE"
-id = "YOUR_KV_ID"
-preview_id = "YOUR_PREVIEW_KV_ID"
