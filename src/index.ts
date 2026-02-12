@@ -40,7 +40,7 @@ export default {
       })), aspect_ratios: ASPECT_RATIOS });
     }
     if (url.pathname === '/health') {
-      return jsonResponse({ status: 'ok', models: Object.keys(models) });
+      return jsonResponse({ status: 'ok', models: Object.keys(models), version: '2.0' });
     }
     return jsonResponse({ error: 'Not found' }, 404);
   }
@@ -72,9 +72,14 @@ async function handleGenerate(request: Request, models: Record<string, any>): Pr
     if (body.negative_prompt) payload.negative_prompt = body.negative_prompt;
 
     const response = await fetch(model.endpoint, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Origin': 'https://www.nsfwlover.com' },
       body: JSON.stringify(payload)
     });
+
+    if (!response.ok) {
+      return jsonResponse({ error: 'Generation failed', status: response.status }, response.status);
+    }
 
     const data = await response.json();
     const images = data.images || (data.url ? [{ url: data.url }] : []);
@@ -92,19 +97,34 @@ async function handleImg2Img(request: Request, models: Record<string, any>): Pro
 
     const modelId = body.model || 'zimage-turbo';
     const model = models[modelId];
+    if (!model) return jsonResponse({ error: 'Model not found' }, 400);
 
     let inputImage = body.image;
     if (inputImage.startsWith('http')) {
-      const imgResp = await fetch(inputImage);
-      const arrayBuffer = await imgResp.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-      inputImage = `data:image/jpeg;base64,${base64}`;
+      try {
+        const imgResp = await fetch(inputImage);
+        const arrayBuffer = await imgResp.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        inputImage = `data:image/jpeg;base64,${base64}`;
+      } catch (e) {
+        return jsonResponse({ error: 'Failed to fetch image' }, 400);
+      }
     }
 
-    const payload = { model: modelId, prompt: body.prompt, init_image: inputImage, strength: body.strength || 0.75 };
+    const payload = {
+      model: modelId, prompt: body.prompt, init_image: inputImage,
+      strength: body.strength || 0.75, output_format: 'url'
+    };
+
     const response = await fetch(model.endpoint, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Origin': 'https://www.nsfwlover.com' },
+      body: JSON.stringify(payload)
     });
+
+    if (!response.ok) {
+      return jsonResponse({ error: 'Img2img failed', status: response.status }, response.status);
+    }
 
     const data = await response.json();
     const images = data.images || [{ url: data.url || data.image_url }];
@@ -119,7 +139,7 @@ function corsResponse(): Response {
   return new Response(null, { headers: {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
   }});
 }
 
