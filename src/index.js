@@ -1,7 +1,8 @@
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const cookie = '__Host-next-auth.csrf-token=586235cacc756c46c6206b84e3d9735ae3bdc1c67f74a9289492aa21b516abb5%7C3512b4c3a60ee93559e8459c4a3a8b81f93b8dde39d5136476f1a2bf1fec0cb7; __Secure-next-auth.callback-url=https%3A%2F%2Fwww.nsfwlover.com%2Flogin-callback%3FcallbackUrl%3Dhttps%253A%252F%252Fwww.nsfwlover.com%252Fnsfw-ai-image-generator; __Secure-next-auth.session-token=b1c3a341-df2a-4ae6-b779-adc912bf5417; ph_phc_VrIqTc5BlFS71lrxDiL1JXlxIrgL8RLcFVkTA7r3kxo_posthog=%7B%22distinct_id%22%3A%22cmlcbhd280dield0pz1tlfzvk%22%2C%22%24sesid%22%3A%5B1770920426067%2C%22019c5315-2d05-7f5e-8e21-ec704e5be09e%22%2C1770920422661%5D%2C%22%24epp%22%3Atrue%2C%22%24initial_person_info%22%3A%7B%22r%22%3A%22https%3A%2F%2Faccounts.google.com%2F%22%2C%22u%22%3A%22https%3A%2F%2Fwww.nsfwlover.com%2Flogin-callback%3FcallbackUrl%3Dhttps%253A%252F%252Fwww.nsfwlover.com%252Fnsfw-image-edit%22%7D%7D';
+    const cookie = '__Host-next-auth.csrf-token=586235cacc756c46c6206b84e3d9735ae3bdc1c67f74a9289492aa21b516abb5%7C3512b4c3a60ee93559e8459c4a3a8b81f93b8dde39d5136476f1a2bf1fec0cb7; __Secure-next-auth.callback-url=https%3A%2F%2Fwww.nsfwlover.com%2Flogin-callback%3FcallbackUrl%3Dhttps%253A%252F%252Fwww.nsfwlover.com%252Fnsfw-ai-image-generator; __Secure-next-auth.session-token=b1c3a341-df2a-4ae6-b779-adc912bf5417; ph_phc_VrIqTc5BlFS71lrxDiL1JXlxIrgL8RLcFVkTA7r3kxo_posthog=%7B%22distinct_id%22%3A%22cmlcbhd280dield0pz1tlfzvk%22%2C%22%24sesid%22%3A%5B1770920426067%2C%22019c5315-2d05-7f5e-8e21-ec704e5be09e%22%2C1770920422661%5D%2C%22%24epp%22%3Atrue%2C%22%24initial_person_info%22%3A%7B%22r%22%3A%22https%3A%2F%2Faccounts.google.com%2F%22%2C%22u%22%3A%22https%3A%2F%2Fwww.nsfwlover.com%2Flogin-callback%3FcallbackUrl%3Dhttps%253A%252F%252Fwww.nsfwlover.com%252Fnsfw-image-edit%22%7D%7D
+';
 
     // 處理 CORS 預檢
     if (request.method === 'OPTIONS') {
