@@ -704,6 +704,11 @@
                     <label for="cookie" data-i18n="cookieLabel">Cookie</label>
                     <textarea id="cookie" data-i18n-placeholder="cookiePlaceholder" placeholder="輸入您的 Cookie（選填，用於認證）" style="min-height: 60px;"></textarea>
                 </div>
+                
+                <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="saveCredentials" checked style="width: auto; margin: 0;">
+                    <label for="saveCredentials" data-i18n="saveCredentials" style="margin: 0; cursor: pointer;">永久保存 API Key 和 Cookie</label>
+                </div>
             </div>
 
             <!-- 輸入參數區 -->
@@ -941,6 +946,7 @@
                 apiKeyPlaceholder: '輸入您的 API Key（選填）',
                 cookieLabel: 'Cookie',
                 cookiePlaceholder: '輸入您的 Cookie（選填，用於認證）',
+                saveCredentials: '永久保存 API Key 和 Cookie',
                 cfgScaleLabel: 'CFG Scale',
                 cfgScaleDesc: 'CFG Scale，控制提示詞影響程度 (選填，預設: 7.5)',
                 numImagesLabel: '生成數量',
@@ -1014,6 +1020,7 @@
                 apiKeyPlaceholder: 'Enter your API Key (optional)',
                 cookieLabel: 'Cookie',
                 cookiePlaceholder: 'Enter your Cookie (optional, for authentication)',
+                saveCredentials: 'Permanently save API Key and Cookie',
                 cfgScaleLabel: 'CFG Scale',
                 cfgScaleDesc: 'CFG Scale, controls prompt influence (optional, default: 7.5)',
                 numImagesLabel: 'Number of Images',
@@ -1034,9 +1041,17 @@
             const apiKeyFromUrl = urlParams.get('api_key');
             const cookieFromUrl = urlParams.get('cookie');
             
-            // 從 localStorage 讀取 API KEY 和 Cookie
-            const apiKeyFromStorage = localStorage.getItem('api_key');
-            const cookieFromStorage = localStorage.getItem('cookie');
+            // 從 localStorage 讀取保存設置
+            const saveCredentialsSetting = localStorage.getItem('save_credentials');
+            if (saveCredentialsSetting === 'true') {
+                document.getElementById('saveCredentials').checked = true;
+            } else {
+                document.getElementById('saveCredentials').checked = false;
+            }
+            
+            // 只有在選擇永久保存時才從 localStorage 讀取憑證
+            const apiKeyFromStorage = document.getElementById('saveCredentials').checked ? localStorage.getItem('api_key') : null;
+            const cookieFromStorage = document.getElementById('saveCredentials').checked ? localStorage.getItem('cookie') : null;
             
             // 優先使用 URL 參數，其次使用 localStorage
             const apiKey = apiKeyFromUrl || apiKeyFromStorage;
@@ -1044,18 +1059,10 @@
             
             if (apiKey) {
                 document.getElementById('apiKey').value = apiKey;
-                // 如果是從 URL 參數讀取的，保存到 localStorage
-                if (apiKeyFromUrl && !apiKeyFromStorage) {
-                    localStorage.setItem('api_key', apiKey);
-                }
             }
             
             if (cookie) {
                 document.getElementById('cookie').value = cookie;
-                // 如果是從 URL 參數讀取的，保存到 localStorage
-                if (cookieFromUrl && !cookieFromStorage) {
-                    localStorage.setItem('cookie', cookie);
-                }
             }
         }
 
@@ -1268,14 +1275,24 @@
             const apiKey = document.getElementById('apiKey').value.trim();
             const cookie = document.getElementById('cookie').value.trim();
             
-            // 保存 API KEY 到 localStorage
-            if (apiKey) {
-                localStorage.setItem('api_key', apiKey);
-            }
+            // 檢查是否要永久保存憑證
+            const saveCredentials = document.getElementById('saveCredentials').checked;
             
-            // 保存 Cookie 到 localStorage
-            if (cookie) {
-                localStorage.setItem('cookie', cookie);
+            // 保存設置到 localStorage
+            localStorage.setItem('save_credentials', saveCredentials.toString());
+            
+            // 保存 API KEY 到 localStorage（如果選擇永久保存）
+            if (saveCredentials) {
+                if (apiKey) {
+                    localStorage.setItem('api_key', apiKey);
+                }
+                if (cookie) {
+                    localStorage.setItem('cookie', cookie);
+                }
+            } else {
+                // 如果不保存，清除 localStorage 中的憑證
+                localStorage.removeItem('api_key');
+                localStorage.removeItem('cookie');
             }
             
             const t = translations[currentLang];
@@ -1303,7 +1320,16 @@
 
             // 構建請求標頭
             const requestHeaders = {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+                'Cache-Control': 'no-cache',
+                'Origin': 'https://www.nsfwlover.com',
+                'Referer': 'https://www.nsfwlover.com/',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             };
 
             // 如果有 API Key，添加到標頭
