@@ -183,7 +183,7 @@
   <div class="footer"><p>Powered by NSFWLover API | Made with ❤️</p></div>
   <script>
     let currentMode = 'txt2img', currentModel = 'zimage-turbo', currentRatio = '1:1', numImages = 1, strength = 0.75, inputImageData = null;
-    const API_BASE = 'https://your-worker.workers.dev';
+    const API_BASE = 'https://nsfwlover-complete-api.kines966176.workers.dev';
     function switchMode(mode) { currentMode = mode; document.getElementById('tab-txt2img').classList.toggle('active', mode === 'txt2img'); document.getElementById('tab-img2img').classList.toggle('active', mode === 'img2img'); document.getElementById('upload-section').classList.toggle('hidden', mode === 'txt2img'); document.getElementById('txt2img-options').classList.toggle('hidden', mode === 'img2img'); document.getElementById('img2img-options').classList.toggle('hidden', mode === 'txt2img'); document.getElementById('templates').classList.toggle('hidden', mode === 'img2img'); document.getElementById('prompt-label').textContent = mode === 'txt2img' ? '✍️ 提示词 *' : '✨ 修改指令 *'; document.getElementById('generate-btn').innerHTML = mode === 'txt2img' ? '✨ 生成 ' + numImages + ' 张图片' : '✨ 开始转换'; }
     function selectModel(model) { currentModel = model; document.querySelectorAll('.model-btn').forEach(btn => btn.classList.remove('active')); event.target.closest('.model-btn').classList.add('active'); }
     function selectRatio(ratio) { currentRatio = ratio; document.querySelectorAll('.ratio-card').forEach(card => card.classList.remove('active')); event.target.closest('.ratio-card').classList.add('active'); }
