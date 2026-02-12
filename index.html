@@ -763,19 +763,11 @@
                 <h2 class="card-title" data-i18n="apiSettings">API 設置</h2>
                 
                 <div class="form-group">
-                    <label for="apiKey" data-i18n="apiKeyLabel">API Key</label>
-                    <input type="password" id="apiKey" data-i18n-placeholder="apiKeyPlaceholder" placeholder="輸入您的 API Key（選填）">
+                    <label for="apiKey" data-i18n="apiKeyLabel">API Key / Cookie</label>
+                    <input type="password" id="apiKey" data-i18n-placeholder="apiKeyPlaceholder" placeholder="輸入您的 API Key 或 Cookie（選填）">
                 </div>
                 
-                <div class="form-group">
-                    <label for="cookie" data-i18n="cookieLabel">Cookie</label>
-                    <textarea id="cookie" data-i18n-placeholder="cookiePlaceholder" placeholder="輸入您的 Cookie（選填，用於認證）" style="min-height: 60px;"></textarea>
-                </div>
-                
-                <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-                    <input type="checkbox" id="saveCredentials" checked style="width: auto; margin: 0;">
-                    <label for="saveCredentials" data-i18n="saveCredentials" style="margin: 0; cursor: pointer;">永久保存 API Key 和 Cookie</label>
-                </div>
+                <button class="btn" onclick="saveCredentials()" data-i18n="saveBtn">保存設置</button>
             </div>
 
             <!-- 輸入參數區 -->
@@ -966,6 +958,9 @@
                 analysisSuccess: '圖片分析成功！',
                 analysisFailed: '圖片分析失敗',
                 noImageSelected: '請先選擇圖片',
+                saveBtn: '保存設置',
+                saveSuccess: '設置已保存！',
+                saveFailed: '保存失敗',
                 generationParams: '生成參數',
                 promptLabel: '提示詞 (Prompt)',
                 promptPlaceholder: '輸入您想要生成的圖片描述...',
@@ -1020,11 +1015,8 @@
                 nsfwDisclaimer: '⚠️ 警告：成人模式已啟用。請確保您已年滿法定年齡並遵守當地法律法規。',
                 nsfwDesc: '成人模式，啟用後可生成成人內容 (選填，預設: false)',
                 apiSettings: 'API 設置',
-                apiKeyLabel: 'API Key',
-                apiKeyPlaceholder: '輸入您的 API Key（選填）',
-                cookieLabel: 'Cookie',
-                cookiePlaceholder: '輸入您的 Cookie（選填，用於認證）',
-                saveCredentials: '永久保存 API Key 和 Cookie',
+                apiKeyLabel: 'API Key / Cookie',
+                apiKeyPlaceholder: '輸入您的 API Key 或 Cookie（選填）',
                 cfgScaleLabel: 'CFG Scale',
                 cfgScaleDesc: 'CFG Scale，控制提示詞影響程度 (選填，預設: 7.5)',
                 numImagesLabel: '生成數量',
@@ -1047,6 +1039,9 @@
                 analysisSuccess: 'Image analysis successful!',
                 analysisFailed: 'Image analysis failed',
                 noImageSelected: 'Please select an image first',
+                saveBtn: 'Save Settings',
+                saveSuccess: 'Settings saved!',
+                saveFailed: 'Save failed',
                 generationParams: 'Generation Parameters',
                 promptLabel: 'Prompt',
                 promptPlaceholder: 'Enter your image description...',
@@ -1101,11 +1096,8 @@
                 nsfwDisclaimer: '⚠️ Warning: Adult mode is enabled. Please ensure you are of legal age and comply with local laws and regulations.',
                 nsfwDesc: 'Adult mode, enable to generate adult content (optional, default: false)',
                 apiSettings: 'API Settings',
-                apiKeyLabel: 'API Key',
-                apiKeyPlaceholder: 'Enter your API Key (optional)',
-                cookieLabel: 'Cookie',
-                cookiePlaceholder: 'Enter your Cookie (optional, for authentication)',
-                saveCredentials: 'Permanently save API Key and Cookie',
+                apiKeyLabel: 'API Key / Cookie',
+                apiKeyPlaceholder: 'Enter your API Key or Cookie (optional)',
                 cfgScaleLabel: 'CFG Scale',
                 cfgScaleDesc: 'CFG Scale, controls prompt influence (optional, default: 7.5)',
                 numImagesLabel: 'Number of Images',
@@ -1119,35 +1111,34 @@
 
         let currentLang = 'zh';
 
-        // 初始化函數 - 從 URL 參數或 localStorage 讀取 API KEY 和 Cookie
+        // 初始化函數 - 從 URL 參數或 localStorage 讀取 API KEY
         function initApp() {
             // 從 URL 參數讀取 API KEY
             const urlParams = new URLSearchParams(window.location.search);
             const apiKeyFromUrl = urlParams.get('api_key');
-            const cookieFromUrl = urlParams.get('cookie');
             
-            // 從 localStorage 讀取保存設置
-            const saveCredentialsSetting = localStorage.getItem('save_credentials');
-            if (saveCredentialsSetting === 'true') {
-                document.getElementById('saveCredentials').checked = true;
-            } else {
-                document.getElementById('saveCredentials').checked = false;
-            }
-            
-            // 只有在選擇永久保存時才從 localStorage 讀取憑證
-            const apiKeyFromStorage = document.getElementById('saveCredentials').checked ? localStorage.getItem('api_key') : null;
-            const cookieFromStorage = document.getElementById('saveCredentials').checked ? localStorage.getItem('cookie') : null;
+            // 從 localStorage 讀取 API KEY
+            const apiKeyFromStorage = localStorage.getItem('api_key');
             
             // 優先使用 URL 參數，其次使用 localStorage
             const apiKey = apiKeyFromUrl || apiKeyFromStorage;
-            const cookie = cookieFromUrl || cookieFromStorage;
             
             if (apiKey) {
                 document.getElementById('apiKey').value = apiKey;
             }
+        }
+
+        // 保存憑證函數
+        function saveCredentials() {
+            const t = translations[currentLang];
+            const apiKey = document.getElementById('apiKey').value.trim();
             
-            if (cookie) {
-                document.getElementById('cookie').value = cookie;
+            if (apiKey) {
+                localStorage.setItem('api_key', apiKey);
+                showStatus(t.saveSuccess, 'success');
+            } else {
+                localStorage.removeItem('api_key');
+                showStatus('已清除保存的憑證', 'info');
             }
         }
 
@@ -1377,15 +1368,15 @@
         // 圖片分析
         async function analyzeImage() {
             const t = translations[currentLang];
-            const cookie = document.getElementById('cookie').value.trim();
+            const apiKey = document.getElementById('apiKey').value.trim();
 
             if (!uploadedImage) {
                 showStatus(t.noImageSelected, 'error');
                 return;
             }
 
-            if (!cookie) {
-                showStatus('請先輸入 Cookie 進行認證', 'error');
+            if (!apiKey) {
+                showStatus('請先輸入 API Key / Cookie 進行認證', 'error');
                 return;
             }
 
@@ -1414,7 +1405,7 @@
                     'Sec-Fetch-Mode': 'cors',
                     'Sec-Fetch-Site': 'same-origin',
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Cookie': cookie
+                    'Cookie': apiKey
                 };
 
                 const apiResponse = await fetch(IMAGE_ANALYSIS_ENDPOINT, {
@@ -1476,27 +1467,6 @@
             const seedInput = document.getElementById('seed').value.trim();
             const negativePrompt = document.getElementById('negativePrompt').value.trim();
             const apiKey = document.getElementById('apiKey').value.trim();
-            const cookie = document.getElementById('cookie').value.trim();
-            
-            // 檢查是否要永久保存憑證
-            const saveCredentials = document.getElementById('saveCredentials').checked;
-            
-            // 保存設置到 localStorage
-            localStorage.setItem('save_credentials', saveCredentials.toString());
-            
-            // 保存 API KEY 到 localStorage（如果選擇永久保存）
-            if (saveCredentials) {
-                if (apiKey) {
-                    localStorage.setItem('api_key', apiKey);
-                }
-                if (cookie) {
-                    localStorage.setItem('cookie', cookie);
-                }
-            } else {
-                // 如果不保存，清除 localStorage 中的憑證
-                localStorage.removeItem('api_key');
-                localStorage.removeItem('cookie');
-            }
             
             const t = translations[currentLang];
 
@@ -1535,14 +1505,9 @@
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             };
 
-            // 如果有 API Key，添加到標頭
+            // 如果有 API Key / Cookie，添加到標頭
             if (apiKey) {
-                requestHeaders['Authorization'] = `Bearer ${apiKey}`;
-            }
-            
-            // 如果有 Cookie，添加到標頭
-            if (cookie) {
-                requestHeaders['Cookie'] = cookie;
+                requestHeaders['Cookie'] = apiKey;
             }
 
             // 更新請求內容顯示
