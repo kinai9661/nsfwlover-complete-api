@@ -11,10 +11,10 @@ compatibility_date = "2024-01-01"
 project_name = "image-api-dashboard"
 production_branch = "main"
 
-# 構建配置（靜態網站，無需建置）
-[build]
-command = ""
-cwd = ""
+# 資源目錄配置（靜態網站）
+[assets]
+directory = "./"
+# 靜態網站無需構建命令
 
 # 環境變量 - API 端點配置
 [vars]
