@@ -1,7 +1,6 @@
 {
-  "name": "nsfwlover-proxy",
+  "name": "nsfwlover-complete",
   "version": "2.0.0",
-  "description": "NSFWLover API Proxy with Enhanced UI",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 图片生成器 - NSFWLover</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); overflow: hidden; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center; }
+    .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+    .subtitle { opacity: 0.95; font-size: 1rem; }
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 30px; background: #f8f9fa; }
+    .tab { padding: 25px 20px; border: 3px solid #e0e0e0; border-radius: 15px; background: white; cursor: pointer; text-align: center; transition: all 0.3s; }
+    .tab:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2); }
+    .tab.active { border-color: #667eea; background: linear-gradient(135deg, #f0f2ff 0%, #faf0ff 100%); box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3); }
+    .tab-icon { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+    .tab-label { font-size: 1.2rem; font-weight: 600; color: #2c3e50; display: block; margin-bottom: 5px; }
+    .tab-desc { font-size: 0.85rem; color: #7f8c8d; }
+    .content { padding: 30px; }
+    .form-group { margin-bottom: 25px; }
+    .form-group label { display: block; font-weight: 600; color: #2c3e50; margin-bottom: 10px; font-size: 1.1rem; }
+    .model-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .model-btn { padding: 20px; border: 2px solid #e0e0e0; border-radius: 12px; background: white; cursor: pointer; text-align: left; transition: all 0.3s; }
+    .model-btn:hover { border-color: #667eea; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); }
+    .model-btn.active { border-color: #667eea; background: linear-gradient(135deg, #f0f2ff 0%, #faf0ff 100%); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3); }
+    .model-name { font-weight: 600; font-size: 1.1rem; color: #2c3e50; margin-bottom: 5px; }
+    .model-speed { color: #667eea; font-size: 0.9rem; }
+    .upload-area { border: 3px dashed #cbd5e0; border-radius: 15px; padding: 60px 30px; text-align: center; cursor: pointer; background: #f8f9fa; transition: all 0.3s; }
+    .upload-area:hover { border-color: #667eea; background: #f0f2ff; }
+    .upload-icon { font-size: 4rem; margin-bottom: 15px; opacity: 0.7; }
+    .preview { position: relative; border-radius: 12px; overflow: hidden; max-width: 500px; }
+    .preview img { width: 100%; display: block; }
+    .preview-btn { position: absolute; top: 10px; right: 10px; padding: 8px 16px; background: rgba(231, 76, 60, 0.9); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+    textarea, input[type="text"] { width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; font-family: inherit; transition: border-color 0.3s; }
+    textarea { resize: vertical; min-height: 100px; }
+    textarea:focus, input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+    .templates { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .template-chip { padding: 6px 14px; border: 1px solid #e0e0e0; border-radius: 20px; background: white; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+    .template-chip:hover { background: #667eea; color: white; border-color: #667eea; }
+    .ratio-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+    .ratio-card { padding: 15px 10px; border: 2px solid #e0e0e0; border-radius: 12px; text-align: center; cursor: pointer; background: white; transition: all 0.3s; }
+    .ratio-card:hover { border-color: #667eea; transform: translateY(-2px); }
+    .ratio-card.active { border-color: #667eea; background: linear-gradient(135deg, #f0f2ff 0%, #faf0ff 100%); }
+    .ratio-icon { font-size: 2rem; display: block; margin-bottom: 5px; }
+    .ratio-label { font-weight: 600; font-size: 0.9rem; color: #2c3e50; display: block; margin-bottom: 3px; }
+    .ratio-size { font-size: 0.75rem; color: #7f8c8d; }
+    .slider { width: 100%; height: 8px; border-radius: 4px; background: #e0e0e0; outline: none; -webkit-appearance: none; }
+    .slider::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); }
+    .slider::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); cursor: pointer; border: none; }
+    .slider-marks { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.85rem; color: #95a5a6; }
+    .generate-btn { width: 100%; padding: 18px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-size: 1.2rem; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4); }
+    .generate-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(102, 126, 234, 0.6); }
+    .generate-btn:disabled { background: #bdc3c7; cursor: not-allowed; box-shadow: none; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255, 255, 255, 0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error { padding: 15px 20px; background: #fee; color: #c33; border-radius: 10px; margin: 20px 0; border-left: 4px solid #e74c3c; font-weight: 500; }
+    .results { margin-top: 30px; padding-top: 30px; border-top: 2px solid #e0e0e0; }
+    .results h2 { text-align: center; margin-bottom: 25px; color: #2c3e50; }
+    .image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+    .image-card { border-radius: 12px; overflow: hidden; background: white; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); transition: all 0.3s; }
+    .image-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); }
+    .image-card img { width: 100%; display: block; }
+    .image-actions { padding: 12px; display: flex; gap: 8px; }
+    .image-actions button, .image-actions a { flex: 1; padding: 8px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; text-decoration: none; text-align: center; font-size: 0.9rem; transition: all 0.2s; }
+    .btn-download { background: #27ae60; color: white; }
+    .btn-copy { background: #3498db; color: white; }
+    .btn-edit { background: #9b59b6; color: white; }
+    .image-actions button:hover, .image-actions a:hover { transform: scale(1.05); }
+    .hidden { display: none; }
+    .footer { text-align: center; padding: 20px; color: rgba(255, 255, 255, 0.8); font-size: 0.9rem; }
+    @media (max-width: 768px) {
+      body { padding: 10px; }
+      .header h1 { font-size: 1.8rem; }
+      .tabs { grid-template-columns: 1fr; }
+      .model-grid { grid-template-columns: 1fr; }
+      .ratio-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+      .image-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎨 AI 图片生成器</h1>
+      <p class="subtitle">基于 NSFWLover API - 支持文生图、图生图、批量生成</p>
+    </div>
+    <div class="tabs">
+      <div class="tab active" id="tab-txt2img" onclick="switchMode('txt2img')">
+        <span class="tab-icon">📝</span>
+        <span class="tab-label">文生图</span>
+        <span class="tab-desc">从文字描述生成图片</span>
+      </div>
+      <div class="tab" id="tab-img2img" onclick="switchMode('img2img')">
+        <span class="tab-icon">🖼️</span>
+        <span class="tab-label">图生图</span>
+        <span class="tab-desc">基于原图修改生成</span>
+      </div>
+    </div>
+    <div class="content">
+      <div class="form-group">
+        <label>🤖 AI 模型</label>
+        <div class="model-grid">
+          <div class="model-btn active" onclick="selectModel('zimage-turbo')">
+            <div class="model-name">Z-Image Turbo</div>
+            <div class="model-speed">⚡ 极快 (2-5秒)</div>
+          </div>
+          <div class="model-btn" onclick="selectModel('flux2klein')">
+            <div class="model-name">Flux 2 Klein</div>
+            <div class="model-speed">🚀 中速 (5-10秒)</div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group hidden" id="upload-section">
+        <label>🖼️ 上传原图</label>
+        <div id="upload-area" class="upload-area" onclick="document.getElementById('fileInput').click()">
+          <div class="upload-icon">📤</div>
+          <div style="font-weight:600; margin-bottom:8px">点击上传图片</div>
+          <div style="font-size:0.9rem; color:#7f8c8d">支持 JPG, PNG, WEBP (最大 10MB)</div>
+        </div>
+        <div id="preview-area" class="hidden">
+          <div class="preview">
+            <img id="preview-img" src="" alt="Preview">
+            <button class="preview-btn" onclick="clearImage()">✕ 移除</button>
+          </div>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFile(event)">
+      </div>
+      <div class="form-group">
+        <label id="prompt-label">✍️ 提示词 *</label>
+        <textarea id="prompt" placeholder="详细描述你想要生成的图片..."></textarea>
+        <div class="templates" id="templates">
+          <span style="font-size:0.85rem; color:#7f8c8d">快速模板：</span>
+          <button class="template-chip" onclick="useTemplate('portrait of a person, detailed face, professional lighting, high quality')">人物肖像</button>
+          <button class="template-chip" onclick="useTemplate('beautiful landscape, mountains, sunset, vibrant colors, 8k')">风景</button>
+          <button class="template-chip" onclick="useTemplate('anime style illustration, colorful, detailed, high quality')">动漫</button>
+          <button class="template-chip" onclick="useTemplate('photorealistic, ultra detailed, professional photography, 8k')">写实</button>
+          <button class="template-chip" onclick="useTemplate('cyberpunk city, neon lights, futuristic, detailed, cinematic')">科幻</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>🚫 负向提示词</label>
+        <input type="text" id="negative" value="blurry, low quality, distorted" placeholder="不想要的元素...">
+      </div>
+      <div id="txt2img-options">
+        <div class="form-group">
+          <label>📐 图片比例</label>
+          <div class="ratio-grid">
+            <div class="ratio-card active" onclick="selectRatio('1:1')"><span class="ratio-icon">⬜</span><span class="ratio-label">1:1</span><span class="ratio-size">1024×1024</span></div>
+            <div class="ratio-card" onclick="selectRatio('16:9')"><span class="ratio-icon">▬</span><span class="ratio-label">16:9</span><span class="ratio-size">1344×768</span></div>
+            <div class="ratio-card" onclick="selectRatio('9:16')"><span class="ratio-icon">▮</span><span class="ratio-label">9:16</span><span class="ratio-size">768×1344</span></div>
+            <div class="ratio-card" onclick="selectRatio('4:3')"><span class="ratio-icon">▭</span><span class="ratio-label">4:3</span><span class="ratio-size">1152×896</span></div>
+            <div class="ratio-card" onclick="selectRatio('3:4')"><span class="ratio-icon">▯</span><span class="ratio-label">3:4</span><span class="ratio-size">896×1152</span></div>
+            <div class="ratio-card" onclick="selectRatio('21:9')"><span class="ratio-icon">━</span><span class="ratio-label">21:9</span><span class="ratio-size">1536×640</span></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>🔢 生成数量：<span id="num-display">1</span> 张</label>
+          <div class="slider-container">
+            <input type="range" id="num-slider" class="slider" min="1" max="4" value="1" oninput="updateNum(this.value)">
+            <div class="slider-marks"><span>1</span><span>2</span><span>3</span><span>4</span></div>
+          </div>
+        </div>
+      </div>
+      <div id="img2img-options" class="hidden">
+        <div class="form-group">
+          <label>💪 变化强度：<span id="strength-display">0.75</span></label>
+          <div class="slider-container">
+            <input type="range" id="strength-slider" class="slider" min="0" max="1" step="0.05" value="0.75" oninput="updateStrength(this.value)">
+            <div class="slider-marks"><span>保守 0.5</span><span>适中 0.75</span><span>激进 1.0</span></div>
+          </div>
+        </div>
+      </div>
+      <button class="generate-btn" id="generate-btn" onclick="generate()">✨ 生成图片</button>
+      <div id="error" class="error hidden"></div>
+      <div id="results" class="results hidden">
+        <h2 id="results-title">✨ 生成结果</h2>
+        <div id="image-grid" class="image-grid"></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer"><p>Powered by NSFWLover API | Made with ❤️</p></div>
+  <script>
+    let currentMode = 'txt2img', currentModel = 'zimage-turbo', currentRatio = '1:1', numImages = 1, strength = 0.75, inputImageData = null;
+    const API_BASE = 'https://your-worker.workers.dev';
+    function switchMode(mode) { currentMode = mode; document.getElementById('tab-txt2img').classList.toggle('active', mode === 'txt2img'); document.getElementById('tab-img2img').classList.toggle('active', mode === 'img2img'); document.getElementById('upload-section').classList.toggle('hidden', mode === 'txt2img'); document.getElementById('txt2img-options').classList.toggle('hidden', mode === 'img2img'); document.getElementById('img2img-options').classList.toggle('hidden', mode === 'txt2img'); document.getElementById('templates').classList.toggle('hidden', mode === 'img2img'); document.getElementById('prompt-label').textContent = mode === 'txt2img' ? '✍️ 提示词 *' : '✨ 修改指令 *'; document.getElementById('generate-btn').innerHTML = mode === 'txt2img' ? '✨ 生成 ' + numImages + ' 张图片' : '✨ 开始转换'; }
+    function selectModel(model) { currentModel = model; document.querySelectorAll('.model-btn').forEach(btn => btn.classList.remove('active')); event.target.closest('.model-btn').classList.add('active'); }
+    function selectRatio(ratio) { currentRatio = ratio; document.querySelectorAll('.ratio-card').forEach(card => card.classList.remove('active')); event.target.closest('.ratio-card').classList.add('active'); }
+    function updateNum(value) { numImages = parseInt(value); document.getElementById('num-display').textContent = value; document.getElementById('generate-btn').innerHTML = '✨ 生成 ' + value + ' 张图片'; }
+    function updateStrength(value) { strength = parseFloat(value); document.getElementById('strength-display').textContent = value; }
+    function useTemplate(text) { document.getElementById('prompt').value = text; }
+    function handleFile(event) { const file = event.target.files[0]; if (!file) return; if (!file.type.startsWith('image/')) { showError('请上传图片文件'); return; } if (file.size > 10 * 1024 * 1024) { showError('图片大小不能超过 10MB'); return; } const reader = new FileReader(); reader.onload = (e) => { inputImageData = e.target.result; document.getElementById('preview-img').src = inputImageData; document.getElementById('upload-area').classList.add('hidden'); document.getElementById('preview-area').classList.remove('hidden'); }; reader.readAsDataURL(file); }
+    function clearImage() { inputImageData = null; document.getElementById('fileInput').value = ''; document.getElementById('upload-area').classList.remove('hidden'); document.getElementById('preview-area').classList.add('hidden'); }
+    function showError(msg) { const errorEl = document.getElementById('error'); errorEl.textContent = msg; errorEl.classList.remove('hidden'); setTimeout(() => errorEl.classList.add('hidden'), 5000); }
+    async function generate() { const prompt = document.getElementById('prompt').value.trim(); if (!prompt) { showError('请输入提示词'); return; } if (currentMode === 'img2img' && !inputImageData) { showError('请先上传图片'); return; } const btn = document.getElementById('generate-btn'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 生成中...'; document.getElementById('error').classList.add('hidden'); try { const endpoint = currentMode === 'txt2img' ? '/api/generate' : '/api/img2img'; const payload = { model: currentModel, prompt: prompt, negative_prompt: document.getElementById('negative').value }; if (currentMode === 'txt2img') { payload.aspect_ratio = currentRatio; payload.n = numImages; } else { payload.image = inputImageData; payload.strength = strength; } const response = await fetch(API_BASE + endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); const data = await response.json(); if (data.success && data.images) { displayResults(data.images); } else { showError(data.error || '生成失败'); } } catch (error) { showError('网络错误：' + error.message); } finally { btn.disabled = false; btn.innerHTML = currentMode === 'txt2img' ? '✨ 生成 ' + numImages + ' 张图片' : '✨ 开始转换'; } }
+    function displayResults(images) { const resultsEl = document.getElementById('results'); const gridEl = document.getElementById('image-grid'); const titleEl = document.getElementById('results-title'); titleEl.textContent = `✨ 生成结果 (${images.length} 张)`; gridEl.innerHTML = ''; images.forEach((img, index) => { const card = document.createElement('div'); card.className = 'image-card'; card.innerHTML = `<img src="${img.url}" alt="Generated ${index + 1}"><div class="image-actions"><a href="${img.url}" download class="btn-download">💾 下载</a><button class="btn-copy" onclick="copyUrl('${img.url}')">📋 复制</button>${currentMode === 'txt2img' ? `<button class="btn-edit" onclick="editImage('${img.url}')">🔄 编辑</button>` : ''}</div>`; gridEl.appendChild(card); }); resultsEl.classList.remove('hidden'); resultsEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+    function copyUrl(url) { navigator.clipboard.writeText(url); alert('✅ 已复制到剪贴板！'); }
+    function editImage(url) { switchMode('img2img'); inputImageData = url; document.getElementById('preview-img').src = url; document.getElementById('upload-area').classList.add('hidden'); document.getElementById('preview-area').classList.remove('hidden'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  </script>
+</body>
+</html>
