@@ -1,6 +1,6 @@
 {
   "name": "nsfwlover-ui-gen",
-  "version": "1.7.0",
+  "version": "1.9.0",
   "private": true,
   "devDependencies": { "wrangler": "^3.0.0" },
   "scripts": { "deploy": "wrangler deploy", "dev": "wrangler dev" }

@@ -6,3 +6,4 @@ compatibility_flags = ["nodejs_compat_v2"]
 [vars]
 TARGET_CREATE = "https://www.nsfwlover.com/api/image/generation/zimage-turbo"
 TARGET_POLL = "https://www.nsfwlover.com/api/image/generation"
+TURNSTILE_SITEKEY = "0x4AAAAAAADnPIDROrmt1Wwj"
