@@ -9,7 +9,7 @@ export default {
 
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
     if (url.pathname === '/') return new Response(HTML_UI, { headers: { ...cors, 'Content-Type': 'text/html;charset=UTF-8' } });
-    if (url.pathname === '/health') return Response.json({ status: 'ok', version: '1.9-A' }, { headers: cors });
+    if (url.pathname === '/health') return Response.json({ status: 'ok', version: '2.0' }, { headers: cors });
     if (url.pathname === '/v1/models') return Response.json({
       object: 'list', data: [{ id: 'zimage-turbo', object: 'model', owned_by: 'nsfwlover' }]
     }, { headers: cors });
@@ -19,27 +19,25 @@ export default {
   }
 };
 
-function buildCookie(env, sessionOverride, posthogOverride) {
-  const session = sessionOverride || env.SESSION_TOKEN || '';
+// 只需 posthog cookie，不需 session-token
+function buildCookie(env, posthogOverride) {
   const posthog = posthogOverride || env.POSTHOG_COOKIE || '';
-  const parts = [];
-  if (session) parts.push('__Secure-next-auth.session-token=' + session);
-  if (posthog) parts.push('ph_phc_VrIqTc5BlFS71lrxDiL1JXlxIrgL8RLcFVkTA7r3kxo_posthog=' + posthog);
-  return parts.join('; ');
+  if (posthog) return 'ph_phc_VrIqTc5BlFS71lrxDiL1JXlxIrgL8RLcFVkTA7r3kxo_posthog=' + posthog;
+  return '';
 }
 
 async function handleDebug(request, env, cors) {
   const url = new URL(request.url);
   const promptId = url.searchParams.get('prompt_id');
   if (!promptId) return Response.json({ error: 'Missing prompt_id' }, { status: 400, headers: cors });
-  const cookie = buildCookie(env, '', '');
+  const cookie = buildCookie(env, '');
   const pollResp = await fetch(env.TARGET_POLL + '?prompt_id=' + promptId, {
     headers: { 'Cookie': cookie, 'User-Agent': 'Mozilla/5.0' }
   });
   const raw = await pollResp.text();
   let parsed = null;
   try { parsed = JSON.parse(raw); } catch (_) {}
-  return Response.json({ status: pollResp.status, raw_preview: raw.slice(0, 500), parsed }, { headers: cors });
+  return Response.json({ http_status: pollResp.status, raw_preview: raw.slice(0, 500), parsed }, { headers: cors });
 }
 
 async function handleGeneration(request, env, cors) {
@@ -54,41 +52,46 @@ async function handleGeneration(request, env, cors) {
   const negative_prompt = body.negative_prompt || '';
   const steps = parseInt(body.steps) || 30;
   const seed = parseInt(body.seed) || -1;
-  const sessionOverride = body._session_token || '';
   const posthogOverride = body._posthog_cookie || '';
   const turnstileToken = body._turnstile_token || '';
 
   if (!prompt) return Response.json({ error: 'Missing prompt' }, { status: 400, headers: cors });
 
-  const parts = size.split('x');
-  const width = parseInt(parts[0]) || 512;
-  const height = parseInt(parts[1]) || 768;
-  const cookie = buildCookie(env, sessionOverride, posthogOverride);
+  const sizeParts = size.split('x');
+  const width = parseInt(sizeParts[0]) || 512;
+  const height = parseInt(sizeParts[1]) || 768;
+  const cookie = buildCookie(env, posthogOverride);
 
-  console.log('[v1.9A] prompt:', prompt.slice(0, 50));
-  console.log('[v1.9A] turnstile token present:', !!turnstileToken);
-  console.log('[v1.9A] session present:', !!(sessionOverride || env.SESSION_TOKEN));
+  console.log('[v2.0] prompt:', prompt.slice(0, 50));
+  console.log('[v2.0] turnstile present:', !!turnstileToken);
+  console.log('[v2.0] posthog present:', !!cookie);
 
   try {
-    const headers = {
+    const reqHeaders = {
       'Content-Type': 'application/json',
       'Cookie': cookie,
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
       'Referer': 'https://www.nsfwlover.com/nsfw-ai-image-generator',
       'Origin': 'https://www.nsfwlover.com',
-      'Accept': 'application/json, text/plain, */*',
-      'Accept-Language': 'zh-TW,zh;q=0.9,en;q=0.8',
+      'Accept': '*/*',
+      'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+      'sec-ch-ua': '"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': '"Windows"',
       'sec-fetch-dest': 'empty',
       'sec-fetch-mode': 'cors',
-      'sec-fetch-site': 'same-origin'
+      'sec-fetch-site': 'same-origin',
+      'priority': 'u=1, i'
     };
+
+    // 正確 header 名：cf-turnstile-token（非 cf-turnstile-response）
     if (turnstileToken) {
-      headers['cf-turnstile-response'] = turnstileToken;
+      reqHeaders['cf-turnstile-token'] = turnstileToken;
     }
 
     const createResp = await fetch(env.TARGET_CREATE, {
       method: 'POST',
-      headers,
+      headers: reqHeaders,
       body: JSON.stringify({ prompt, negative_prompt, steps, width, height, seed, n })
     });
 
@@ -124,7 +127,7 @@ async function handleGeneration(request, env, cors) {
           || (pollData.data && pollData.data[0] && pollData.data[0].image)
           || (pollData.result && pollData.result.image)
           || null;
-        if (!b64) throw new Error('No image. Response keys: ' + Object.keys(pollData).join(', '));
+        if (!b64) throw new Error('No image. Keys: ' + Object.keys(pollData).join(', '));
         if (b64.indexOf('data:image') === 0) b64 = b64.split(',')[1];
         const dataArr = [];
         for (let j = 0; j < n; j++) dataArr.push({ b64_json: b64, revised_prompt: prompt });
@@ -143,7 +146,7 @@ const HTML_UI = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NSFWLover AI v1.9</title>
+<title>NSFWLover AI v2.0</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#1a1a2e;color:#e0e0e0;padding:20px;}
@@ -182,7 +185,7 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #2d2d5e;border-ra
 </head>
 <body>
 <div class="wrap">
-<h1>NSFWLover AI v1.9 <span style="font-size:.7rem;color:#6b7280">方案 A · 免費 Turnstile</span></h1>
+<h1>NSFWLover AI v2.0 <span style="font-size:.7rem;color:#6b7280">免費 Turnstile + OpenAI</span></h1>
 
 <div class="tabs">
   <button class="tab-btn on" id="t-gen" onclick="showTab('gen')">🎨 生圖</button>
@@ -192,9 +195,8 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #2d2d5e;border-ra
 
 <!-- 生圖 -->
 <div class="tab-pane on" id="p-gen">
-  <div class="bar" id="tsBar"><span class="dot dot-y"></span>Turnstile：載入中... 請稍候</div>
-  <div class="bar" id="ckBar"><span class="dot dot-y"></span>Cookie：使用後端 Secrets</div>
-
+  <div class="bar" id="tsBar"><span class="dot dot-y"></span>Turnstile：載入中...</div>
+  <div class="bar" id="ckBar"><span class="dot dot-y"></span>PostHog Cookie：使用後端 Secrets</div>
   <label>正向提示詞</label>
   <textarea id="prompt" rows="3">1girl, solo, nsfw, masterpiece, best quality</textarea>
   <label>負向提示詞</label>
@@ -218,22 +220,18 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #2d2d5e;border-ra
 <!-- Cookie -->
 <div class="tab-pane" id="p-ck">
   <div class="info">
-    <b>取得 Cookie：</b><br>
-    1. 登入 nsfwlover.com → F12 → Network<br>
-    2. 觸發生圖 → 找 <b>/api/image/generation/zimage-turbo</b> POST<br>
-    3. Headers → 複製 <b>__Secure-next-auth.session-token</b> 值
+    <b>只需 PostHog Cookie！</b><br>
+    不需要 session-token。<br><br>
+    <b>取得步驟：</b><br>
+    1. F12 → Network → 觸發生圖<br>
+    2. 找 POST zimage-turbo → Headers<br>
+    3. 複製 cookie 行中 <b>ph_phc_VrIqTc5B...=</b> 後面的完整 URL-encoded 值
   </div>
-  <label>Session Token</label>
+  <label>PostHog Cookie 值（ph_phc_... 的值）</label>
   <div class="row">
-    <input type="password" id="ckSession" placeholder="0.eFZ1su..." oninput="onCkChange()">
-    <button class="btn-s btn-g" onclick="togglePw('ckSession')">👁</button>
-    <button class="btn-s btn-r" onclick="clearCk('ckSession')">✕</button>
-  </div>
-  <label>PostHog Cookie（選填）</label>
-  <div class="row">
-    <input type="password" id="ckPosthog" placeholder="%7B%22distinct_id..." oninput="onCkChange()">
+    <input type="password" id="ckPosthog" placeholder="%7B%22distinct_id%22%3A..." oninput="onCkChange()">
     <button class="btn-s btn-g" onclick="togglePw('ckPosthog')">👁</button>
-    <button class="btn-s btn-r" onclick="clearCk('ckPosthog')">✕</button>
+    <button class="btn-s btn-r" onclick="clearInput('ckPosthog')">✕</button>
   </div>
   <div class="g2">
     <button class="btn-s btn-g btn-main" onclick="saveCk()">💾 儲存</button>
@@ -241,24 +239,22 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #2d2d5e;border-ra
   </div>
 </div>
 
-<!-- Turnstile 狀態 -->
+<!-- Turnstile -->
 <div class="tab-pane" id="p-ts">
   <div class="info">
-    <b>方案 A 運作原理：</b><br>
-    1. 頁面載入時嵌入 Cloudflare Turnstile Invisible Widget<br>
-    2. CF 在背景自動執行 challenge（約 1-3 秒）<br>
-    3. 成功後回調 onTurnstileSuccess → 取得一次性 token<br>
-    4. 生圖時附加 <b>cf-turnstile-response</b> header<br>
-    5. 每次生成後 token 自動重置（Turnstile token 一次性使用）
+    <b>Invisible Turnstile 運作原理：</b><br>
+    1. 頁面載入 → CF 自動背景執行 challenge<br>
+    2. 成功 → 回調 onTurnstileSuccess(token)<br>
+    3. 生圖時附加 header: <b>cf-turnstile-token</b><br>
+    4. 生成後自動重置，取得新 token
   </div>
-  <div class="bar" id="tsDetail"><span class="dot dot-y"></span>等待 Turnstile 回應...</div>
+  <div class="bar" id="tsDetail"><span class="dot dot-y"></span>等待...</div>
   <br>
   <button class="btn-s btn-g" onclick="resetTS()">🔄 重新取得 Token</button>
   <div class="info" style="margin-top:12px;">
-    <b>若 Turnstile 一直失敗：</b><br>
-    1. F12 → Console 查看錯誤<br>
-    2. 頁面原始碼搜尋 <b>data-sitekey</b> 確認真實 sitekey<br>
-    3. 更新 wrangler.toml TURNSTILE_SITEKEY 重新 deploy
+    <b>若持續失敗：</b><br>
+    F12 → 搜尋 nsfwlover.com 原始碼中 data-sitekey<br>
+    更新 wrangler.toml TURNSTILE_SITEKEY 重 deploy
   </div>
 </div>
 
@@ -267,13 +263,13 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #2d2d5e;border-ra
 <div class="prog" id="prog"><div class="prog-bar" id="pbar" style="width:0"></div></div>
 <div id="imgs"></div>
 <details style="margin-top:14px;">
-  <summary style="cursor:pointer;color:#6b7280;font-size:.82rem;">📋 API 原始回應（除錯）</summary>
+  <summary style="cursor:pointer;color:#6b7280;font-size:.82rem;">📋 API 原始回應</summary>
   <div id="rawOut" style="margin-top:6px;"></div>
 </details>
 </div>
 
-<!-- Turnstile Invisible Widget -->
-<div id="ts-container" style="position:fixed;bottom:10px;right:10px;z-index:9999;opacity:0;pointer-events:none;">
+<!-- Invisible Turnstile Widget -->
+<div id="ts-container" style="position:fixed;bottom:10px;right:10px;opacity:0;pointer-events:none;">
   <div id="ts-widget"
     class="cf-turnstile"
     data-sitekey="0x4AAAAAAADnPIDROrmt1Wwj"
@@ -284,56 +280,47 @@ input,select,textarea{width:100%;padding:10px;border:1px solid #2d2d5e;border-ra
     data-size="invisible">
   </div>
 </div>
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTSLoad" async defer></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTSLoad" async defer><\/script>
 
 <script>
-var SK = 'nsfwlover_ck';
+var SK = 'nsfwlover_v2';
 var tsToken = '';
-var tsReady = false;
 
 function onTSLoad() {
-  tsReady = true;
-  console.log('Turnstile JS loaded');
-  updateTsBar('載入完成，執行 Challenge...', 'y');
-  // invisible mode: execute manually
-  if (window.turnstile) {
-    window.turnstile.execute('#ts-widget');
-  }
+  console.log('[TS] Loaded, executing...');
+  setTsBar('執行 Challenge...', 'y');
+  if (window.turnstile) window.turnstile.execute('#ts-widget');
 }
 
 function onTurnstileSuccess(token) {
   tsToken = token;
-  var short = token.slice(0, 20) + '...';
-  updateTsBar('Token 已取得 (' + short + ')，有效 ~5 分鐘', 'g');
-  document.getElementById('tsDetail').innerHTML = '<span class="dot dot-g"></span>Token: ' + short + ' (有效)';
-  console.log('Turnstile OK:', short);
+  var short = token.slice(0, 24) + '...';
+  setTsBar('Token 就緒 (' + short + ')', 'g');
+  document.getElementById('tsDetail').innerHTML = '<span class="dot dot-g"></span>' + short + ' (有效 ~5 分鐘)';
+  console.log('[TS] Token OK:', short);
 }
 
 function onTurnstileError(code) {
   tsToken = '';
-  updateTsBar('Turnstile 失敗 (code:' + code + ')，點 Turnstile 頁重置', 'r');
-  document.getElementById('tsDetail').innerHTML = '<span class="dot dot-r"></span>失敗 code: ' + code + '，請重試';
-  console.error('Turnstile error:', code);
+  setTsBar('失敗 code=' + code + '，點重置', 'r');
+  document.getElementById('tsDetail').innerHTML = '<span class="dot dot-r"></span>錯誤 code: ' + code;
+  console.error('[TS] Error:', code);
 }
 
 function onTurnstileExpired() {
   tsToken = '';
-  updateTsBar('Token 已過期，自動重新整理...', 'y');
-  if (window.turnstile) window.turnstile.reset('#ts-widget');
+  setTsBar('已過期，重新整理...', 'y');
+  if (window.turnstile) { window.turnstile.reset('#ts-widget'); window.turnstile.execute('#ts-widget'); }
 }
 
-function updateTsBar(msg, color) {
-  var el = document.getElementById('tsBar');
-  el.innerHTML = '<span class="dot dot-' + color + '"></span>Turnstile：' + msg;
+function setTsBar(msg, c) {
+  document.getElementById('tsBar').innerHTML = '<span class="dot dot-' + c + '"></span>Turnstile：' + msg;
 }
 
 function resetTS() {
   tsToken = '';
-  updateTsBar('重置中...', 'y');
-  if (window.turnstile) {
-    window.turnstile.reset('#ts-widget');
-    window.turnstile.execute('#ts-widget');
-  }
+  setTsBar('重置中...', 'y');
+  if (window.turnstile) { window.turnstile.reset('#ts-widget'); window.turnstile.execute('#ts-widget'); }
 }
 
 function showTab(name) {
@@ -347,7 +334,7 @@ function showTab(name) {
 
 function setAspect(v) {
   var m = {'9:16':[512,768],'1:1':[512,512],'16:9':[768,512],'4:3':[640,480]};
-  var wh = m[v] || [512,768];
+  var wh = m[v]||[512,768];
   document.getElementById('width').value = wh[0];
   document.getElementById('height').value = wh[1];
 }
@@ -357,25 +344,23 @@ function togglePw(id) {
   el.type = el.type === 'password' ? 'text' : 'password';
 }
 
-function clearCk(id) { document.getElementById(id).value = ''; onCkChange(); }
+function clearInput(id) { document.getElementById(id).value = ''; onCkChange(); }
 
 function onCkChange() {
-  var s = document.getElementById('ckSession').value.trim();
-  document.getElementById('ckBar').innerHTML = s
-    ? '<span class="dot dot-g"></span>Cookie：UI 已設定'
-    : '<span class="dot dot-y"></span>Cookie：使用後端 Secrets';
+  var p = document.getElementById('ckPosthog').value.trim();
+  document.getElementById('ckBar').innerHTML = p
+    ? '<span class="dot dot-g"></span>PostHog Cookie：UI 已設定'
+    : '<span class="dot dot-y"></span>PostHog Cookie：使用後端 Secrets';
 }
 
 function saveCk() {
-  var s = document.getElementById('ckSession').value.trim();
   var p = document.getElementById('ckPosthog').value.trim();
-  localStorage.setItem(SK, JSON.stringify({s:s, p:p}));
+  localStorage.setItem(SK, JSON.stringify({p:p}));
   onCkChange(); alert('Cookie 已儲存！');
 }
 
 function clearAllCk() {
   localStorage.removeItem(SK);
-  document.getElementById('ckSession').value = '';
   document.getElementById('ckPosthog').value = '';
   onCkChange();
 }
@@ -383,7 +368,6 @@ function clearAllCk() {
 function loadCk() {
   try {
     var d = JSON.parse(localStorage.getItem(SK) || '{}');
-    if (d.s) document.getElementById('ckSession').value = d.s;
     if (d.p) document.getElementById('ckPosthog').value = d.p;
     onCkChange();
   } catch(e) {}
@@ -400,13 +384,11 @@ function doGen() {
   btn.disabled = true; btn.textContent = '⏳ 生成中...';
   document.getElementById('imgs').innerHTML = '';
   document.getElementById('rawOut').textContent = '';
-  setStatus('🛡 附加 Turnstile token 並發送...', '#a78bfa', true);
   document.getElementById('prog').style.display = 'block';
   document.getElementById('pbar').style.width = '15%';
+  setStatus('🛡 附加 Turnstile token，發送請求...', '#a78bfa', true);
 
-  var ckSession = document.getElementById('ckSession').value.trim();
   var ckPosthog = document.getElementById('ckPosthog').value.trim();
-
   var body = {
     model: 'zimage-turbo',
     prompt: document.getElementById('prompt').value,
@@ -416,19 +398,18 @@ function doGen() {
     steps: parseInt(document.getElementById('steps').value) || 30,
     seed: parseInt(document.getElementById('seed').value) || -1
   };
-  if (ckSession) body._session_token = ckSession;
   if (ckPosthog) body._posthog_cookie = ckPosthog;
   if (tsToken) body._turnstile_token = tsToken;
 
-  setStatus('🔄 生成中，輪詢結果（最多 10 分鐘）...', '#a78bfa', true);
   document.getElementById('pbar').style.width = '25%';
+  setStatus('🔄 輪詢結果（最多 10 分鐘）...', '#a78bfa', true);
 
   fetch('/v1/images/generations', {
     method: 'POST',
     headers: {'Content-Type':'application/json','Authorization':'Bearer sk-test'},
     body: JSON.stringify(body)
   })
-  .then(function(r){ return r.json(); })
+  .then(function(r) { return r.json(); })
   .then(function(data) {
     document.getElementById('rawOut').textContent = JSON.stringify(data, null, 2);
     if (data.error) throw new Error(data.error);
@@ -436,20 +417,14 @@ function doGen() {
     var html = '';
     for (var i = 0; i < data.data.length; i++) {
       var b64 = data.data[i].b64_json;
-      html += '<div class="icard">'
-        + '<img src="data:image/png;base64,' + b64 + '" loading="lazy">'
-        + '<a href="data:image/png;base64,' + b64 + '" download="nsfwlover_' + i + '.png">💾 下載</a>'
-        + '</div>';
+      html += '<div class="icard"><img src="data:image/png;base64,' + b64 + '" loading="lazy">'
+        + '<a href="data:image/png;base64,' + b64 + '" download="nsfwlover_' + i + '.png">💾 下載</a></div>';
     }
     document.getElementById('imgs').innerHTML = html;
-    setStatus('✅ 生成完成！共 ' + data.data.length + ' 張', '#10b981', true);
-    // 重置 token，觸發新一輪 challenge
+    setStatus('✅ 完成！共 ' + data.data.length + ' 張', '#10b981', true);
     tsToken = '';
-    updateTsBar('已使用，重新取得中...', 'y');
-    if (window.turnstile) {
-      window.turnstile.reset('#ts-widget');
-      window.turnstile.execute('#ts-widget');
-    }
+    setTsBar('已使用，重新取得...', 'y');
+    if (window.turnstile) { window.turnstile.reset('#ts-widget'); window.turnstile.execute('#ts-widget'); }
   })
   .catch(function(e) {
     setStatus('❌ 錯誤：' + e.message, '#ef4444', true);
@@ -466,5 +441,4 @@ function doGen() {
 loadCk();
 setAspect('9:16');
 </script>
-</body>
-</html>`;
+</body></html>`;
