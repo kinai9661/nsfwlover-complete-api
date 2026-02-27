@@ -1,12 +1,12 @@
-name = "nsfwlover-complete-api"
+name = "nsfwlover-ui-gen"
 main = "src/index.js"
-compatibility_date = "2025-12-31"
+compatibility_date = "2026-02-28"
+compatibility_flags = ["nodejs_compat_v2"]
 
-# 若需環境變數
-# [vars]
-# CUSTOM_COOKIE = "你的cookie值"
+[vars]
+TARGET_CREATE = "https://www.nsfwlover.com/api/image/generation/zimage-turbo"
+TARGET_POLL = "https://www.nsfwlover.com/api/image/generation"
 
-
-[env.production]
-# 若需變數，如 COOKIE，添加
-# cookie = "您的 cookie 值"
+[[assets]]
+directory = "./public"
+binding = "ASSETS"
