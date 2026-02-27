@@ -1,147 +1,42 @@
-# 圖片生成 API 輸出站
+# NSFWLover UI 生圖工具 v1.5 (OpenAI 相容)
 
-OpenAI 相容的圖片生成 API 逆向工程輸出站，支援 ZImage Turbo 和 Flux2Klein 模型。
+免費 NSFW AI 圖像生成代理，基於 Z-Image-Turbo，部署於 Cloudflare Workers。
 
-## 功能特色
+## 部署步驟
+```bash
+# 1. 安裝 wrangler
+npm i -g wrangler && wrangler login
 
-- 🎨 **圖片生成** - 透過 API 生成高品質圖片
-- 🤖 **多模型支援** - ZImage Turbo (快速) / Flux2Klein (高品質)
-- 🔞 **成人模式** - 支援成人圖片生成（需手動啟用）
-- 🔑 **API Key 支援** - 支援 Bearer Token 認證
-- 🍪 **Cookie 支援** - 支援 Cookie 認證
-- 🌐 **多語言介面** - 支援中文和英文切換
-- 📊 **API 資訊** - 顯示完整的 API 端點資訊和參數說明
-- 📝 **請求/響應** - 即時顯示請求內容和響應結果
-- 📜 **請求歷史** - 記錄最近 10 筆請求歷史
-- 🎯 **單頁應用** - 純前端實現，無需後端伺服器
-- 📱 **響應式設計** - 支援各種螢幕尺寸
+# 2. 設定 Secrets
+wrangler secret put POSTHOG_COOKIE   # 貼 ph_phc_VrIqTc5B... 全值
+wrangler secret put SESSION_TOKEN    # 貼 __Secure-next-auth.session-token 值（若有）
 
-## 支援的模型
-
-| 模型 | 端點 | 特點 |
-|------|------|------|
-| ZImage Turbo | `/api/image/generation/zimage-turbo` | 快速生成模型 |
-| Flux2Klein | `/api/image/generation/flux2klein` | 高品質生成模型 |
+# 3. 部署
+wrangler deploy
+```
 
 ## API 端點
+| 端點 | 方法 | 說明 |
+|------|------|------|
+| / | GET | UI 介面 |
+| /v1/images/generations | POST | OpenAI DALL-E 相容 |
+| /v1/models | GET | 列出模型 |
+| /health | GET | 健康檢查 |
+| /debug?prompt_id=xxx | GET | 除錯輪詢 |
 
-```
-https://www.nsfwlover.com/api/image/generation/zimage-turbo
-https://www.nsfwlover.com/api/image/generation/flux2klein
-```
-
-## 認證設置
-
-### 方法一：透過 URL 參數
-
-在網址後添加參數：
-
-```
-https://your-site.com/?api_key=YOUR_API_KEY&cookie=YOUR_COOKIE
-```
-
-### 方法二：透過介面輸入
-
-在「API 設置」區域輸入您的 API Key 或 Cookie，系統會自動保存到 localStorage。
-
-### 方法三：透過環境變量（部署時）
-
-在 `wrangler.toml` 中設置：
-
-```toml
-[vars]
-API_KEY = "your-api-key-here"
-COOKIE = "your-cookie-here"
-```
-
-## 部署到 Cloudflare Pages
-
-### 方法一：透過 Cloudflare Dashboard 部署
-
-1. 登入 [Cloudflare Dashboard](https://dash.cloudflare.com/)
-2. 進入 **Workers & Pages** > **Create application**
-3. 選擇 **Pages** > **Upload assets**
-4. 上傳專案檔案：
-   - `index.html`
-   - `wrangler.toml` (選用)
-5. 設定專案名稱並點擊 **Deploy**
-
-### 方法二：透過 Wrangler CLI 部署
-
-1. 安裝 Wrangler CLI：
+## curl 範例
 ```bash
-npm install -g wrangler
+curl -X POST https://your-worker.workers.dev/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-任意" \
+  -d '{"model":"zimage-turbo","prompt":"1girl, nsfw, masterpiece","n":1,"size":"512x768"}'
 ```
 
-2. 登入 Cloudflare：
-```bash
-wrangler login
-```
+## 除錯
+- `wrangler tail` 查看 console.log
+- /debug?prompt_id=xxx 手動輪詢測試
+- 403 = Cookie 失效，重新抓取更新 Secrets
+- 10021 = toml 日期設未來，改 2026-01-31 ✅
 
-3. 部署到 Pages：
-```bash
-wrangler pages deploy . --project-name=image-api-dashboard
-```
-
-### 方法三：透過 Git 連接部署
-
-1. 將程式碼推送到 GitHub/GitLab
-2. 在 Cloudflare Dashboard 建立新的 Pages 專案
-3. 連接您的 Git 儲存庫
-4. 設定建置配置（靜態網站，無需建置命令）
-5. 點擊 **Save and Deploy**
-
-## 使用方式
-
-1. 選擇模型（ZImage Turbo 或 Flux2Klein）
-2. 選擇語言（中文或英文）
-3. （可選）輸入 API Key 或 Cookie 進行認證
-4. （可選）啟用成人模式以生成成人內容
-5. 輸入提示詞描述您想要的圖片
-6. 設定圖片圖片參數（寬度、高度、步數等）
-7. 點擊「生成圖片」按鈕
-8. 查看生成結果和 API 響應
-
-## 參數說明
-
-| 參數 | 類型 | 必填 | 說明 |
-|------|------|------|------|
-| prompt | string | 是 | 圖片描述提示詞 |
-| width | number | 否 | 圖片寬度 (64-2048，預設 512) |
-| height | number | 否 | 圖片高度 (64-2048，預設 512) |
-| steps | number | 否 | 生成步數 (1-100，預設 20) |
-| seed | number | 否 | 隨機種子，用於重複生成 |
-| negative_prompt | string | 否 | 負面提示詞 |
-| nsfw | boolean | 否 | 成人模式，啟用後可生成成人內容 (預設: false) |
-
-## API 認證
-
-如果 API 需要認證，請在「API 設置」區域輸入您的 API Key 或 Cookie。系統會自動將其添加到請求標頭中：
-
-```
-Authorization: Bearer YOUR_API_KEY
-Cookie: YOUR_COOKIE
-```
-
-## 快捷鍵
-
-- `Ctrl + Enter` - 快速生成圖片
-
-## 技術棧
-
-- 純 HTML/CSS/JavaScript
-- 無需框架或建置工具
-- Fetch API 進行 HTTP 請求
-- 多語言支援 (i18n)
-- localStorage 用於 API Key 和 Cookie 持久化
-
-## 免責聲明
-
-本工具僅供技術研究和學習使用。使用成人模式生成內容時，請確保：
-- 您已年滿當地法定年齡
-- 遵守當地法律法規
-- 不用於非法用途
-
-## 授權
-
-MIT License
+## GitHub
+kinai9661/nsfwlover-ui-gen

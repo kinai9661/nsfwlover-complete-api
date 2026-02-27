@@ -1,9 +1,8 @@
 name = "nsfwlover-ui-gen"
 main = "src/index.js"
-compatibility_date = "2026-02-27"
+compatibility_date = "2026-01-31"
 compatibility_flags = ["nodejs_compat_v2"]
 
 [vars]
 TARGET_CREATE = "https://www.nsfwlover.com/api/image/generation/zimage-turbo"
 TARGET_POLL = "https://www.nsfwlover.com/api/image/generation"
-
