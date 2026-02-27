@@ -1,7 +1,1 @@
-{
-  "name": "nsfwlover-ui-gen",
-  "version": "2.0.0",
-  "private": true,
-  "devDependencies": { "wrangler": "^3.0.0" },
-  "scripts": { "deploy": "wrangler deploy", "dev": "wrangler dev" }
-}
+{"name":"nsfwlover-ui-gen","version":"2.1.0","private":true,"devDependencies":{"wrangler":"^3.0.0"},"scripts":{"deploy":"wrangler deploy","dev":"wrangler dev"}}
