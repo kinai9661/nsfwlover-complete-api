@@ -1,4 +1,4 @@
-name = "nsfwlover-ui-gen"
+name = "nsfwlover-complete-api"
 main = "src/index.js"
 compatibility_date = "2026-01-31"
 compatibility_flags = ["nodejs_compat_v2"]
